@@ -1,31 +1,26 @@
 Practical Machine Learning Course Project Report
+
 These is a file produced during a homework assignment of Coursera's MOOC Practical Machine Learning from Johns Hopkins Bloomberg School of Public Health.
 For more information about the several MOOCs comprised in this Specialization, please visit: https://www.coursera.org/specialization/jhudatascience/
 The scripts have been solely produced, tested and executed on Windows 10 Pro and RStudio Version 0.99.486.
-Developer: Utkarsh Ashok Pathrabe
-GitHub Repo: https://github.com/UtkarshPathrabe/Practical-Machine-Learning-Johns-Hopkins-Bloomberg-School-of-Public-Health-Coursera/tree/master/Project
-Rpub: http://rpubs.com/UtkarshPathrabe/PracticalMachineLearningProjectReport
+Developer: Harsha V Sagar
 
 Background
 Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, our goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
-
 Data Sources
 The training data for this project is available here:
 https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
 The test data is available here:
 https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
 The data for this project comes from this original source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
-
 Intended Results
 The goal of this project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
-
-Your submission should consist of a link to a Github repo with your R markdown and compiled HTML file describing your analysis. Please constrain the text of the writeup to < 2000 words and the number of figures to be less than 5. It will make it easier for the graders if you submit a repo with a gh-pages branch so the HTML page can be viewed online (and you always want to make it easy on graders :-).
-You should also apply your machine learning algorithm to the 20 test cases available in the test data above. Please submit your predictions in appropriate format to the programming assignment for automated grading. See the programming assignment for additional details.
+1.	Your submission should consist of a link to a Github repo with your R markdown and compiled HTML file describing your analysis. Please constrain the text of the writeup to < 2000 words and the number of figures to be less than 5. It will make it easier for the graders if you submit a repo with a gh-pages branch so the HTML page can be viewed online (and you always want to make it easy on graders :-).
+2.	You should also apply your machine learning algorithm to the 20 test cases available in the test data above. Please submit your predictions in appropriate format to the programming assignment for automated grading. See the programming assignment for additional details.
 Reproducibility
 In order to reproduce the same results, you need a certain set of packages as well as setting a pseudo random seed equal to the one I have used.
 Note: To install, for instance, the rattle package in R, run this command: install.packages("rattle").
 The following Libraries were used for this project, which you should install and load them in your working environment.
-
 library(rattle)
 ## Loading required package: RGtk2
 ## Rattle: A free graphical interface for data mining with R.
@@ -42,14 +37,11 @@ library(randomForest)
 ## Type rfNews() to see new features/changes/bug fixes.
 library(RColorBrewer)
 Finally, load the same seed with the following line of code:
-
 set.seed(56789)
 Getting Data
 First of all, set your current working directory.
-
 setwd("~/GitHub/Practical-Machine-Learning-Johns-Hopkins-Bloomberg-School-of-Public-Health-Coursera/Project")
 The following code fragment downloads the dataset to the data folder in the current working directory.
-
 trainUrl <-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
 testUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
 trainFile <- "./data/pml-training.csv"
@@ -67,7 +59,6 @@ rm(trainUrl)
 rm(testUrl)
 Reading Data
 After downloading the data from the data source, we can read the two csv files into two data frames.
-
 trainRaw <- read.csv(trainFile)
 testRaw <- read.csv(testFile)
 dim(trainRaw)
@@ -77,11 +68,9 @@ dim(testRaw)
 rm(trainFile)
 rm(testFile)
 The training data set contains 19622 observations and 160 variables, while the testing data set contains 20 observations and 160 variables. The classe variable in the training set is the outcome to predict.
-
 Cleaning Data
 In this step, we will clean the dataset and get rid of observations with missing values as well as some meaningless variables.
-
-We clean the Near Zero Variance Variables.
+•	We clean the Near Zero Variance Variables.
 NZV <- nearZeroVar(trainRaw, saveMetrics = TRUE)
 head(NZV, 20)
 ##                        freqRatio percentUnique zeroVar   nzv
@@ -114,7 +103,7 @@ dim(testing01)
 rm(trainRaw)
 rm(testRaw)
 rm(NZV)
-Removing some columns of the dataset that do not contribute much to the accelerometer measurements.
+•	Removing some columns of the dataset that do not contribute much to the accelerometer measurements.
 regex <- grepl("^X|timestamp|user_name", names(training01))
 training <- training01[, !regex]
 testing <- testing01[, !regex]
@@ -125,41 +114,33 @@ dim(training)
 ## [1] 19622    95
 dim(testing)
 ## [1] 20 95
-Removing columns that contain NA's.
+•	Removing columns that contain NA's.
 cond <- (colSums(is.na(training)) == 0)
 training <- training[, cond]
 testing <- testing[, cond]
 rm(cond)
 Now, the cleaned training data set contains 19622 observations and 54 variables, while the testing data set contains 20 observations and 54 variables.
-
 Correlation Matrix of Columns in the Training Data set.
-
 corrplot(cor(training[, -length(names(training))]), method = "color", tl.cex = 0.5)
-
-
+ 
 Partitioning Training Set
 we split the cleaned training set into a pure training data set (70%) and a validation data set (30%). We will use the validation data set to conduct cross validation in future steps.
-
 set.seed(56789) # For reproducibile purpose
 inTrain <- createDataPartition(training$classe, p = 0.70, list = FALSE)
 validation <- training[-inTrain, ]
 training <- training[inTrain, ]
 rm(inTrain)
 The Dataset now consists of 54 variables with the observations divided as following:
-
-Training Data: 13737 observations.
-Validation Data: 5885 observations.
-Testing Data: 20 observations.
+1.	Training Data: 13737 observations.
+2.	Validation Data: 5885 observations.
+3.	Testing Data: 20 observations.
 Data Modelling
 Decision Tree
 We fit a predictive model for activity recognition using Decision Tree algorithm.
-
 modelTree <- rpart(classe ~ ., data = training, method = "class")
 prp(modelTree)
-
-
+ 
 Now, we estimate the performance of the model on the validation data set.
-
 predictTree <- predict(modelTree, validation, type = "class")
 confusionMatrix(validation$classe, predictTree)
 ## Confusion Matrix and Statistics
@@ -198,11 +179,9 @@ ose <- 1 - as.numeric(confusionMatrix(validation$classe, predictTree)$overall[1]
 rm(predictTree)
 rm(modelTree)
 The Estimated Accuracy of the Random Forest Model is 74.4774851% and the Estimated Out-of-Sample Error is 25.5225149%.
-
 Random Forest
 We fit a predictive model for activity recognition using Random Forest algorithm because it automatically selects important variables and is robust to correlated covariates & outliers in general.
 We will use 5-fold cross validation when applying the algorithm.
-
 modelRF <- train(classe ~ ., data = training, method = "rf", trControl = trainControl(method = "cv", 5), ntree = 250)
 modelRF
 ## Random Forest 
@@ -226,7 +205,6 @@ modelRF
 ## Accuracy was used to select the optimal model using  the largest value.
 ## The final value used for the model was mtry = 27.
 Now, we estimate the performance of the model on the validation data set.
-
 predictRF <- predict(modelRF, validation)
 confusionMatrix(validation$classe, predictRF)
 ## Confusion Matrix and Statistics
@@ -265,10 +243,8 @@ ose <- 1 - as.numeric(confusionMatrix(validation$classe, predictRF)$overall[1])
 rm(predictRF)
 The Estimated Accuracy of the Random Forest Model is 99.8810535% and the Estimated Out-of-Sample Error is 0.1189465%.
 Random Forests yielded better Results, as expected!
-
 Predicting The Manner of Exercise for Test Data Set
 Now, we apply the Random Forest model to the original testing data set downloaded from the data source. We remove the problem_id column first.
-
 rm(accuracy)
 rm(ose)
 predict(modelRF, testing[, -length(names(testing))])
@@ -276,7 +252,6 @@ predict(modelRF, testing[, -length(names(testing))])
 ## Levels: A B C D E
 Generating Files to submit as answers for the Assignment
 Function to generate files with predictions to submit for assignment.
-
 pml_write_files = function(x){
   n = length(x)
   for(i in 1:n){
@@ -285,7 +260,6 @@ pml_write_files = function(x){
   }
 }
 Generating the Files.
-
 pml_write_files(predict(modelRF, testing[, -length(names(testing))]))
 rm(modelRF)
 rm(training)
